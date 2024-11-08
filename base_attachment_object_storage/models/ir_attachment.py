@@ -13,6 +13,7 @@ import odoo
 from odoo import _, api, exceptions, models
 from odoo.osv.expression import AND, OR, normalize_domain
 from odoo.tools.safe_eval import const_eval
+from odoo.modules.registry import Registry
 
 from .strtobool import strtobool
 
@@ -260,22 +261,21 @@ class IrAttachment(models.Model):
 
         Using a new Odoo Environment thus a new PG transaction.
         """
-        with api.Environment.manage():
-            if new_cr:
-                registry = odoo.modules.registry.Registry.new(self.env.cr.dbname)
-                with closing(registry.cursor()) as cr:
-                    try:
-                        yield self.env(cr=cr)
-                    except Exception:
-                        cr.rollback()
-                        raise
-                    else:
-                        # disable pylint error because this is a valid commit,
-                        # we are in a new env
-                        cr.commit()  # pylint: disable=invalid-commit
-            else:
-                # make a copy
-                yield self.env()
+        if new_cr:
+            registry = Registry.new(self.env.cr.dbname)
+            with closing(registry.cursor()) as cr:
+                try:
+                    yield self.env(cr=cr)
+                except Exception:
+                    cr.rollback()
+                    raise
+                else:
+                    # disable pylint error because this is a valid commit,
+                    # we are in a new env
+                    cr.commit()  # pylint: disable=invalid-commit
+        else:
+            # make a copy
+            yield self.env()
 
     def _move_attachment_to_store(self):
         self.ensure_one()
