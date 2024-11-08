@@ -10,7 +10,7 @@ from contextlib import closing, contextmanager
 import psycopg2
 
 import odoo
-from odoo import _, api, exceptions, models, current_context
+from odoo import _, api, exceptions, models
 from odoo.osv.expression import AND, OR, normalize_domain
 from odoo.tools.safe_eval import const_eval
 from odoo.modules.registry import Registry
@@ -261,12 +261,8 @@ class IrAttachment(models.Model):
 
         Using a new Odoo Environment thus a new PG transaction.
         """
-        ctx = current_context()
-        env_ctx = {
-            'db': self.env.cr.dbname,
-        }
         if new_cr:
-            registry = Registry(env_ctx['db'])
+            registry = Registry.new(self.env.cr.dbname)
             with closing(registry.cursor()) as cr:
                 try:
                     yield self.env(cr=cr)
